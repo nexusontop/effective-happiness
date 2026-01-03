@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Roblox .ROBLOSECURITY Refresh</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 2rem; max-width: 800px; margin: auto; }
+    label { display:block; margin-top:1rem; }
+    textarea, input[type="text"] { width:100%; box-sizing:border-box; padding:.5rem; font-family:monospace; }
+    button { margin-top:1rem; padding:.5rem 1rem; }
+    pre { background:#f6f8fa; padding:1rem; border-radius:6px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h1>Roblox .ROBLOSECURITY Refresh</h1>
+  <p>
+    Enter the <code>.ROBLOSECURITY</code> token value (just the token string, not "ROBLOSECURITY=") and click Refresh.
+    Optionally provide an API key if your deployment requires one.
+  </p>
+
+  <label>
+    .ROBLOSECURITY token
+    <textarea id="cookie" rows="3" placeholder="Paste .ROBLOSECURITY token here"></textarea>
+  </label>
+
+  <label>
+    API Key (optional)
+    <input id="apiKey" type="text" placeholder="If you set API_KEY on Vercel, supply it here" />
+  </label>
+
+  <div>
+    <button id="send">Refresh Cookie (POST)</button>
+    <button id="sendGet">Refresh Cookie (GET)</button>
+  </div>
+
+  <h3>Result</h3>
+  <pre id="result">No request yet.</pre>
+
+  <script>
+    const result = document.getElementById('result');
+    const cookieEl = document.getElementById('cookie');
+    const apiKeyEl = document.getElementById('apiKey');
+
+    async function doRequest(useGet=false) {
+      const cookie = cookieEl.value.trim();
+      const apiKey = apiKeyEl.value.trim();
+      if (!cookie) {
+        result.textContent = 'Provide a cookie value first.';
+        return;
+      }
+
+      result.textContent = 'Sending request...';
+
+      try {
+        let res;
+        if (useGet) {
+          const q = new URLSearchParams({ cookie });
+          const url = '/api/refresh?' + q.toString();
+          res = await fetch(url, { method: 'GET', headers: apiKey ? { 'x-api-key': apiKey } : {} });
+        } else {
+          const headers = { 'Content-Type': 'application/json' };
+          if (apiKey) headers['x-api-key'] = apiKey;
+          res = await fetch('/api/refresh', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ cookie })
+          });
+        }
+
+        const text = await res.text();
+        // Try to pretty-print JSON
+        try {
+          const j = JSON.parse(text);
+          result.textContent = JSON.stringify(j, null, 2);
+        } catch (e) {
+          result.textContent = text;
+        }
+      } catch (err) {
+        result.textContent = 'Fetch error: ' + String(err);
+      }
+    }
+
+    document.getElementById('send').addEventListener('click', () => doRequest(false));
+    document.getElementById('sendGet').addEventListener('click', () => doRequest(true));
+  </script>
+</body>
+</html>
